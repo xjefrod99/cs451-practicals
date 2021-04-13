@@ -2,6 +2,8 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.linear_model import SGDClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.ensemble import RandomForestClassifier  # LongShortTerm memory
 from shared import dataset_local_path, simple_boxplot
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils import resample
@@ -67,7 +69,10 @@ for train_percent in percentages:
             X_train, y_train, n_samples=n_samples, replace=False
         )  # type:ignore
         # Note here, I'm using a simple classifier for speed, rather than the best.
-        clf = SGDClassifier(random_state=RANDOM_SEED + train_percent + i)
+        # clf = MLPClassifier(random_state=train_percent + i, max_iter=50000)
+        clf = RandomForestClassifier(
+            max_depth=4, random_state=RANDOM_SEED + train_percent + i
+        )
         clf.fit(X_sample, y_sample)
         # so we get 100 scores per percentage-point.
         scores[label].append(clf.score(X_vali, y_vali))
@@ -81,6 +86,7 @@ import matplotlib.pyplot as plt
 means = np.array(acc_mean)
 std = np.array(acc_std)
 plt.plot(percentages, acc_mean, "o-")
+# this is cool
 plt.fill_between(percentages, means - std, means + std, alpha=0.2)
 plt.xlabel("Percent Training Data")
 plt.ylabel("Mean Accuracy")
