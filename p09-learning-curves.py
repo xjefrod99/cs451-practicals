@@ -10,6 +10,11 @@ from sklearn.utils import resample
 import json
 from sklearn.tree import DecisionTreeClassifier
 
+from dataclasses import dataclass
+from sklearn.base import ClassifierMixin
+
+from typing import Dict, Any, List
+
 #%% load up the data
 examples = []
 ys = []
@@ -47,6 +52,14 @@ X_train = scale.fit_transform(rX_train)
 X_vali: np.ndarray = scale.transform(rX_vali)  # type:ignore
 X_test: np.ndarray = scale.transform(rX_test)  # type:ignore
 
+
+@dataclass
+class ExperimentResult:
+    vali_acc: float
+    params: Dict[str, Any]
+    model: ClassifierMixin
+
+
 #%% Actually compute performance for each % of training data
 N = len(y_train)
 num_trials = 100
@@ -56,11 +69,12 @@ scores = {}
 acc_mean = []
 acc_std = []
 
+data_bucket = list(range(50, N, 50))
 # Which subset of data will potentially really matter.
-for train_percent in percentages:
-    n_samples = int((train_percent / 100) * N)
-    print("{}% == {} samples...".format(train_percent, n_samples))
-    label = "{}".format(train_percent, n_samples)
+for n_samples in data_bucket:
+    # n_samples = int((train_percent / 100) * N)
+    print("{} samples...".format(n_samples))
+    label = "{}".format(n_samples)
 
     # So we consider num_trials=100 subsamples, and train a model on each.
     scores[label] = []
@@ -70,9 +84,7 @@ for train_percent in percentages:
         )  # type:ignore
         # Note here, I'm using a simple classifier for speed, rather than the best.
         # clf = MLPClassifier(random_state=train_percent + i, max_iter=50000)
-        clf = RandomForestClassifier(
-            max_depth=4, random_state=RANDOM_SEED + train_percent + i
-        )
+        clf = RandomForestClassifier(max_depth=4, random_state=RANDOM_SEED + i)
         clf.fit(X_sample, y_sample)
         # so we get 100 scores per percentage-point.
         scores[label].append(clf.score(X_vali, y_vali))
@@ -83,14 +95,19 @@ for train_percent in percentages:
 # First, try a line plot, with shaded variance regions:
 import matplotlib.pyplot as plt
 
+# convert our list of means/std to numpy arrays so we can add & subtract them.
 means = np.array(acc_mean)
 std = np.array(acc_std)
-plt.plot(percentages, acc_mean, "o-")
+# plot line from means
+plt.plot(data_bucket, acc_mean, "o-")
 # this is cool
-plt.fill_between(percentages, means - std, means + std, alpha=0.2)
+# plot area from means & stddev
+plt.fill_between(data_bucket, means - std, means + std, alpha=0.2)
+
+# Manage axes/show:
 plt.xlabel("Percent Training Data")
 plt.ylabel("Mean Accuracy")
-plt.xlim([0, 100])
+plt.xlim([0, N])
 plt.title("Shaded Accuracy Plot")
 plt.savefig("graphs/p09-area-Accuracy.png")
 plt.show()
@@ -110,3 +127,8 @@ simple_boxplot(
 #    - Even DecisionTreeClassifier has some more interesting behavior on these plots.
 # 2. Change the plots to operate over multiples of 50 samples, instead of percentages.
 #    - This will likely be how you want to make these plots for your project.
+
+# OPTIONAL CHALLENGE:
+#  Refactor the code so that you can evaluate multiple models in this fashion.
+#  Two different models at the same time will likely max out the visual utility of the plot.
+#  The boxplot will not be able to show both models at once.
