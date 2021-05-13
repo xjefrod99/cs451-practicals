@@ -1,7 +1,6 @@
 #%%
 import numpy as np
 from sklearn import metrics
-import numpy as np
 from tqdm import tqdm
 from typing import List
 import random
@@ -100,7 +99,7 @@ model = nn.Linear(D, n_classes, bias=True)
 objective = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
 
-train("logistic-regression", model, optimizer, objective)
+#train("logistic-regression", model, optimizer, objective)
 
 
 def make_neural_net(D: int, hidden: List[int], num_classes: int = 2, dropout=0.2):
@@ -124,20 +123,32 @@ def make_neural_net(D: int, hidden: List[int], num_classes: int = 2, dropout=0.2
 # 0. In this version; consider commenting out other calls to train/fit!
 # 1. Investigate LEARNING_RATE, DROPOUT, MOMENTUM, REGULARIZATION.
 # 2. What do you think these variables change?
+# Learning rate adjusts the rate at which the model fits the x train data to y train. In other words, how it learns to predict outcome from inputs.
+
+# DROPOUT works by randomly turning a node off, and then this helps the model from overfitting.
+
+# MOMENTUM tells the model how fast to converge and move in a certain direction.
+
+# REGULARIZATION helps the model avoid overfitting by adding a penalty in the error/loss function.
+
+
 # 3. Consider a shallower, wider network.
 #    - Changing [16,16] to something else... might require revisiting step 1.
-##
+## A network that is too shallow [6,6] will likely result in a similar acc and Auc, but there will be a greater loss at the end, while a wider network [24, 24]
+# results in slightly higher acc and Auc and a lesser loss.
 
 LEARNING_RATE = 1.0
 DROPOUT = 0.2  # randomly turn off this fraction of the neural-net while training.
-MOMENTUM = 0.9
+MOMENTUM = 0.95
 REGULARIZATION = 0.0  # try 0.1, 0.01, etc.
 
 # two hidden layers, 16 nodes, each.
-model = make_neural_net(D, [16, 16], dropout=DROPOUT)
-objective = nn.CrossEntropyLoss()
-optimizer = optim.SGD(
-    model.parameters(), lr=LEARNING_RATE, momentum=MOMENTUM, weight_decay=REGULARIZATION
-)
-
-train("neural_net", model, optimizer, objective, max_iter=1000)
+for dr in [ 0.7]:
+    model = make_neural_net(D, [24, 24], dropout=dr)
+    objective = nn.CrossEntropyLoss()
+    for lr in [0.003]: #0.0025 and 0.7 and 0.0025 and 0.8
+        print("learning rate = ", lr, "dr ", dr)
+        optimizer = optim.SGD(
+            model.parameters(), lr=lr, momentum=MOMENTUM, weight_decay=REGULARIZATION
+        )
+        train("neural_net", model, optimizer, objective, max_iter=1000)
